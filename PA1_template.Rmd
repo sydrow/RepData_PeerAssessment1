@@ -1,25 +1,285 @@
 ---
-title: "Reproducible Research: Peer Assessment 1"
-output: 
-  html_document:
-    keep_md: true
+title: "swirl"
+output: html_document
+date: "2025-05-22"
 ---
 
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
 
-## Loading and preprocessing the data
+## R Markdown
+
+This is an R Markdown document. Markdown is a simple formatting syntax for authoring HTML, PDF, and MS Word documents. For more details on using R Markdown see <http://rmarkdown.rstudio.com>.
+
+When you click the **Knit** button a document will be generated that includes both content as well as the output of any embedded R code chunks within the document. You can embed an R code chunk like this:
+
+```{r cars}
+summary(cars)
+```
+
+## Including Plots
+
+You can also embed plots, for example:
+
+```{r pressure, echo=FALSE}
+plot(pressure)
+```
+
+Note that the `echo = FALSE` parameter was added to the code chunk to prevent printing of the R code that generated the plot.
+```{r}
+library(swirl)
+```
+
+```{r}
+activity<-read.csv("~/Desktop/CourseEra/activity.csv")
+```
+
+```{r}
+totalsteps <- aggregate(steps ~ date, data = activity, FUN = sum)
+hist(totalsteps$steps, 
+     main = "Total Steps Each Day", 
+     col="blue", 
+     xlab="Number of Steps")
+```
+
+```{r}
+dailymean <- mean(totalsteps$steps)
+print(dailymean)
+```
+```{r}
+dailymedian <- median(totalsteps$steps)
+print(dailymedian)
+```
+
+```{r}
+avgstepsbyinterval <- aggregate(steps ~ interval, data = activity, FUN = function(x) mean(x,na.rm = TRUE))
+plot(avgstepsbyinterval$interval,
+     avgstepsbyinterval$steps, 
+     type="l",
+     col = "red",
+     xlab="5 min interval", 
+     ylab="average steps",
+     main="Activity Pattern")
+```
+```{r}
+max_row <- avgstepsbyinterval[which.max(avgstepsbyinterval$steps), ]
+print(max_row)
+```
+```{r}
+totalnas <-sum(is.na(activity$steps))
+print(totalnas)
+```
+```{r}
+nas <- is.na(activity$steps)
+sum(nas)
+```
+```{r}
+replaceNas = function(steps, interval) {
+  replace = NA
+  if (!is.na(steps)) {
+    replace = steps }
+  else {
+    replace = avgstepsbyinterval[avgstepsbyinterval$interval == interval, "steps"]}
+  return(replace) }
+```
+
+```{r}
+filled_activity = activity
+filled_activity$steps = mapply(replaceNas, filled_activity$steps, filled_activity$interval)
+```
+
+```{r}
+total_steps_filled <- aggregate(steps ~ date, data = filled_activity, sum)
+filledplot <-ggplot(total_steps_filled, aes (x = steps)) +
+  geom_histogram(fill = "blue", bins = 5) +
+  labs(title = "Daily steps no NAs", x = "Step Count", y = "Frequency")
+print(filledplot)
+```
+```{r}
+imputedmedian <- median(total_steps_filled$step)
+print(imputedmedian)
+```
+```{r}
+imputedmean <- mean(total_steps_filled$steps)
+print(imputedmean)
+```
+
+
+```{r}
+str(filled_activity)
+```
+```{r}
+library(lattice)
+filled_activity <- activity_imputed
+filled_activity$date <- as.Date(filled_activity$date)
+filled_activity$days <- factor(ifelse(
+  weekdays(filled_activity$date) %in% c("Saturday", "Sunday"),
+  "weekend", 
+  "weekday"))
+aggregateimputeddata <- aggregate(steps ~ interval + days, 
+                                  data = filled_activity, 
+                                  FUN = mean)
+xyplot(steps ~ interval | days,
+       data = aggregateimputeddata,
+       main = "Weekday vs Weekend Activity Patterns",
+       xlab = "5-minute Interval",
+       ylab = "Average Steps",
+       layout = c(1, 2),
+       type = "l")
+```
+
+
+***END OF ASSIGNMENT***
 
 
 
-## What is mean total number of steps taken per day?
+
+
+```{r}
+print(head(filled_activity))
+print(str(filled_activity))
+print(any(is.na(filled_activity$steps)))
+print(any(is.na(filled_activity$interval)))
+print(any(is.na(filled_activity$days)))
+```
+```{r}
+rm(mean)
+```
+```{r}
+mean(1:10)
+```
 
 
 
-## What is the average daily activity pattern?
+
+                                        
+```{r}
+NEI <- readRDS("~/Desktop/CourseEra/exdata_data_NEI_data/summarySCC_PM25.rds")
+SCC <- readRDS("~/Desktop/CourseEra/exdata_data_NEI_data/Source_Classification_Code.rds")
+```
 
 
+```{r}
+aggTotals <- aggregate(Emissions ~ year,NEI, sum)
+```
 
-## Imputing missing values
+```{r}
+barplot((aggTotals$Emissions)/10^6,
+        names.arg=aggTotals$year,
+        xlab="Year",
+        ylab="PM2.5 Emissions (10^6 Tons)", main="Total PM2.5 Emissions From All US Sources")
+```
+
+```{r}
+png("total_emissions_us.png", width = 800, height = 600)
+
+# Create the barplot
+barplot((aggTotals$Emissions)/10^6,
+        names.arg = aggTotals$year,
+        xlab = "Year",
+        ylab = "PM2.5 Emissions (10^6 Tons)",
+        main = "Total PM2.5 Emissions From All US Sources")
+dev.off()
+```
+
+```{r}
+baltimoreNEI <- NEI[NEI$fips=="24510",]
+aggTotalsBaltimore <- aggregate(Emissions ~ year, baltimoreNEI,sum)
+```
+
+```{r}
+barplot(aggTotalsBaltimore$Emissions,
+names.arg=aggTotalsBaltimore$year,
+xlab="Year",
+ylab="PM2.5 Emissions (Tons)",
+main="Total PM2.5 Emissions From All Baltimore City Sources")
+```
+```{r}
+png("total_baltimore.png", width = 800, height = 600)
+
+barplot(aggTotalsBaltimore$Emissions,
+names.arg=aggTotalsBaltimore$year,
+xlab="Year",
+ylab="PM2.5 Emissions (Tons)",
+main="Total PM2.5 Emissions From All Baltimore City Sources")
 
 
+# Close the device to write the file
+dev.off()
+```
 
-## Are there differences in activity patterns between weekdays and weekends?
+
+```{r}
+combustionRelated <- grepl("comb", SCC$SCC.Level.One, ignore.case=TRUE)
+coalRelated <- grepl("coal", SCC$SCC.Level.Four, ignore.case=TRUE) 
+coalCombustion <- (combustionRelated & coalRelated)
+combustionSCC <- SCC[coalCombustion,]$SCC
+combustionNEI <- NEI[NEI$SCC %in% combustionSCC,]
+```
+
+```{r}
+library(ggplot2)
+png("combustion.png", width = 800, height = 600)
+combust <- ggplot(combustionNEI,aes(factor(year),Emissions/10^5)) +
+geom_bar(stat="identity",fill="grey",width=0.75) +
+theme_bw() +  guides(fill=FALSE) +
+labs(x="year", y=expression("Total PM"[2.5]*" Emission (10^5 Tons)")) + 
+labs(title=expression("PM"[2.5]*" Coal Combustion Source Emissions Across US from 1999-2008"))
+print(combust)
+dev.off()
+```
+```{r}
+vehicles <- grepl("vehicle", SCC$SCC.Level.Two, ignore.case=TRUE)
+vehiclesSCC <- SCC[vehicles,]$SCC
+vehiclesNEI <- NEI[NEI$SCC %in% vehiclesSCC,]
+baltimoreVehiclesNEI <- vehiclesNEI[vehiclesNEI$fips=="24510",]
+```
+
+```{r}
+png("baltv.png",width=480,height=480,units="px",bg="transparent")
+library(ggplot2)
+baltv <- ggplot(baltimoreVehiclesNEI,aes(factor(year),Emissions)) +
+geom_bar(stat="identity",fill="grey",width=0.75) +
+theme_bw() +  guides(fill=FALSE) +
+labs(x="year", y=expression("Total PM"[2.5]*" Emission (10^5 Tons)")) + 
+labs(title=expression("PM"[2.5]*" Motor Vehicle Source Emissions in Baltimore from 1999-2008"))
+print(baltv)
+dev.off()
+```
+```{r}
+vehicles <- grepl("vehicle", SCC$SCC.Level.Two, ignore.case=TRUE)
+vehiclesSCC <- SCC[vehicles,]$SCC
+vehiclesNEI <- NEI[NEI$SCC %in% vehiclesSCC,]
+```
+
+```{r}
+vehiclesBaltimoreNEI <- vehiclesNEI[vehiclesNEI$fips=="24510",]
+vehiclesBaltimoreNEI$city <- "Baltimore City"
+vehiclesLANEI <- vehiclesNEI[vehiclesNEI$fips=="06037",]
+vehiclesLANEI$city <- "Los Angeles County"
+```
+
+```{r}
+bothNEI <- rbind(vehiclesBaltimoreNEI,vehiclesLANEI)
+png("both.png",width=480,height=480,units="px",bg="transparent")
+library(ggplot2)
+both <- ggplot(bothNEI, aes(x=factor(year), y=Emissions, fill=city)) +
+ geom_bar(aes(fill=year),stat="identity") +
+facet_grid(scales="free", space="free", .~city) +
+guides(fill=FALSE) + theme_bw() +
+labs(x="year", y=expression("Total PM"[2.5]*" Emission (Kilo-Tons)")) + 
+labs(title=expression("PM"[2.5]*" Motor Vehicle Source Emissions in Baltimore & LA, 1999-2008"))
+print(both)
+dev.off()
+```
+
+
+```{r}
+dir()
+```
+
+```{r}
+NEI <- readRDS("summarySCC_PM25.rds")
+SCC <- readRDS("Source_Classification_Code.rds")
+```
